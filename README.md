@@ -1,6 +1,10 @@
 Cache Channels for Squid
 ========================
 
+Copyright (c) 2007-2010 Yahoo! Inc.
+See src/manager.py for license.
+
+
 What are Cache Channels?
 ------------------------
 
@@ -46,7 +50,7 @@ Additionally, since it's not necessary to track all of the
 request-URIs that are associated with one concept, it offers a
 powerful way to manage cached search results (for example).
 
-Example: Using Channels with an Accelerator
+Example: Using Channels with an HTTP Accelerator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Imagine that you have a Web server, ``http://example.com/`` with
@@ -170,7 +174,7 @@ To use the channel manager, you will need:
 
 
 -  `Squid 2.7 <http://www.squid-cache.org/>`_ or greater
--  `Python 2.3 <http://www.python.org/>`_ or greater, with the
+-  `Python 2.5 <http://www.python.org/>`_ or greater, with the
    following extensions:
 
    -  `Twisted <http://twistedmatrix.com/>`_
