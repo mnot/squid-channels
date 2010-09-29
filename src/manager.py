@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python
 
 """
 Cache Channel Manager/Handler
@@ -136,7 +136,9 @@ class ChannelManager:
     def _schedule_check(self, channel_uri, when=0):
         def check():
             channel = self.channels[channel_uri]
-            c = AtomChannel(channel, self._check_done, self._check_error, self.config)
+            c = AtomChannel(
+                channel, self._check_done, self._check_error, self.config
+            )
             logging.debug("checking <%s>" % channel_uri)
             c.check()
         logging.debug("schedule_check <%s> %2.2f" % (channel_uri, when))
@@ -146,19 +148,26 @@ class ChannelManager:
         now = time.time()
         channel['last_check'] = now
         self.channels[channel['uri']] = channel
-        logging.debug("check_done <%s> %2.2f" % (channel['uri'], channel['last_check_elapsed']))
+        logging.debug("check_done <%s> %2.2f" % (
+            channel['uri'], channel['last_check_elapsed']
+        ))
         wait = max(
             (channel['precision'] - channel.get('last_check_elapsed', 0)) * \
             ((100 - self.config.getint('main', 'extend_pct')) / 100.0 ),
             self.min_check_time
         )
         if wait == self.min_check_time:
-            logging.warning("check_delay <%s>; using min_check_time" % channel['uri'])
+            logging.warning("check_delay <%s>; using min_check_time" % \
+                channel['uri']
+            )
         self._schedule_check(channel['uri'], wait)
 
     def _check_error(self, channel, message=""):
         logging.warning("check_error <%s> %s" % (channel['uri'], message))
-        self._schedule_check(channel['uri'], channel.get('precision', self.error_check )) # TODO: back-off algorithm
+        self._schedule_check(
+            channel['uri'], 
+            channel.get('precision', self.error_check )
+        ) # TODO: back-off algorithm
 
     def _gc(self):
         logging.info("garbage_collection")
@@ -173,6 +182,7 @@ class ChannelManager:
                     del self.channels[ck]['events'][k]
                     logging.debug("gc_event <%s> <%s> %s" % (ck, k, v))            
         self.reactor.callLater(self.gc_period, self._gc)
+
 
 class AtomChannel:
     def __init__(self, channel, done_cb, error_cb, config):
@@ -194,19 +204,25 @@ class AtomChannel:
                 
     def process_sub_doc(self, uri, instr):
         head_links, md, events = parse_feed(uri, instr)
-        self.channel['lifetime'] = int(md["lifetime"] or self.default_lifetime)
-        self.channel['precision'] = int(md["precision"] or self.default_precision)
+        self.channel['lifetime'] = int(
+            md["lifetime"] or self.default_lifetime
+        )
+        self.channel['precision'] = int(
+            md["precision"] or self.default_precision
+        )
         self.add_events(events)
         self.check_prev(head_links)
 
     def check_prev(self, head_links):
         prev_uri = head_links.get('prev-archive', None)
         logging.debug("prev_uri <%s>" % prev_uri or "")
-        if prev_uri and prev_uri != self.channel.get('last_archive_seen', None):
+        if prev_uri and prev_uri != \
+        self.channel.get('last_archive_seen', None):
             self.archives_requested.append(prev_uri)
             logging.debug("checking prev_uri")
-            self.fetch(prev_uri, self.process_archive, 
-               req_headers={"Cache-Control": "max-stale=%s" % self.channel['lifetime']})
+            self.fetch(prev_uri, self.process_archive, req_headers={
+                "Cache-Control": "max-stale=%s" % self.channel['lifetime']
+            })
         else:
             self.done()
     
@@ -222,12 +238,16 @@ class AtomChannel:
             self.channel['events'] = {}
         for uri, date in events:
             if date is None:
-                logging.warning("bad_event_date <%s> <%s>" % (self.channel['uri'], uri))
+                logging.warning("bad_event_date <%s> <%s>" % \
+                    (self.channel['uri'], uri)
+                )
                 date = time.time()
             if date <= self.channel['events'].get(uri, 0):
                 continue
             self.channel['events'][uri] = date
-            logging.debug("add_event <%s> <%s> %s" % (self.channel['uri'], uri, date))
+            logging.debug("add_event <%s> <%s> %s" % (
+                self.channel['uri'], uri, date
+            ))
 
     def done(self):
         self.archives_requested.reverse()
@@ -313,14 +333,18 @@ class SquidHandlerProtocol(LineReceiver):
             return STALE % "channel_dead"
         events = channel.get('events', {})
         response_cached = now - age - self.clock_fuzz
-        if events.has_key(request_uri) and events[request_uri] > response_cached:
+        if events.has_key(request_uri) and \
+        events[request_uri] > response_cached:
             return STALE % "invalidated_request_uri"
         for group_uri, params in links.items():
             if params.get('rev', "").lower() != 'invalidates':
                 continue
             group_uri = urljoin(request_uri, group_uri)
-            logging.debug("group_uri <%s> rev %s" % (group_uri, params['rev']))
-            if events.has_key(group_uri) and events[group_uri] > response_cached:
+            logging.debug("group_uri <%s> rev %s" % (
+                group_uri, params['rev']
+            ))
+            if events.has_key(group_uri) and \
+            events[group_uri] > response_cached:
                 return STALE % "invalidated_group_uri"
         if channel_maxage != True:
             try:
@@ -331,9 +355,12 @@ class SquidHandlerProtocol(LineReceiver):
                 return STALE % "channel_maxage"
         if age > channel['lifetime']:
             return STALE % "channel_lifetime"
-        extend_by = channel['precision'] * (self.manager.config.getint('main', 'extend_pct') / 100.0 )
+        extend_by = channel['precision'] * (
+            self.manager.config.getint('main', 'extend_pct') / 100.0
+        )
         date = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(now))
-        return "%s FRESH freshness=%s res{Date}=\"%s\" log=extended_%2.2f" % (req_id, extend_by, date, extend_by)
+        return "%s FRESH freshness=%s res{Date}=\"%s\" log=extended_%2.2f" % \
+            (req_id, extend_by, date, extend_by)
 
 
 def _unquotestring(instr):
@@ -345,7 +372,9 @@ def _unquotestring(instr):
 def _splitstring(instr, item, split):
     if not instr: 
         return []
-    return [ h.strip() for h in re.findall(r'%s(?=%s|\s*$)' % (item, split), instr)]    
+    return [ h.strip() for h in 
+             re.findall(r'%s(?=%s|\s*$)' % (item, split), instr)
+           ]    
     
 ## Cache-Control header parsing
 TOKEN = r'(?:[^\(\)<>@,;:\\"/\[\]\?={} \t]+?)'
@@ -424,7 +453,9 @@ def main(configfile):
     # logging
     logger = logging.getLogger()
     try:
-        hdlr = RotatingFileHandler(logfile, maxBytes=1024 * 1024 * 10, backupCount=log_backup)
+        hdlr = RotatingFileHandler(
+            logfile, maxBytes=1024 * 1024 * 10, backupCount=log_backup
+        )
     except IOError, why:
         error("Can't open log file (%s)" % why)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -435,7 +466,9 @@ def main(configfile):
     # PID management
     if pidfile:
         if os.path.exists(pidfile):
-            error("Channel manager already running (PID %s)." % open(pidfile).read())
+            error("Channel manager already running (PID %s)." % \
+                open(pidfile).read()
+            )
         try:
             pid_fh = open(pidfile, 'w')
             pid_fh.write(str(os.getpid()))
@@ -476,11 +509,16 @@ def parse_feed(uri, instr):
     def get_links(base_uri, node):
         if not node: 
             return {}
-        return dict([(i.getAttribute("rel") or "alternate", urljoin(base_uri, i.getAttribute("href"))) for i in node if (
-          i.namespaceURI == ATOM and i.localName == "link" )
+        return dict([
+            (i.getAttribute("rel") or "alternate", 
+             urljoin(base_uri, i.getAttribute("href"))
+            ) for i in node if (
+             i.namespaceURI == ATOM and i.localName == "link" 
+            )
         ])
     dom = xml.dom.minidom.parseString(instr)
-    if dom.documentElement.namespaceURI != ATOM or dom.documentElement.localName != u'feed':
+    if dom.documentElement.namespaceURI != ATOM or \
+    dom.documentElement.localName != u'feed':
         raise NotImplementedError, "Feed Format Not Recognized"
         
     head = [i for i in dom.documentElement.childNodes if not (i.namespaceURI != ATOM and i.localName == "entry")]
@@ -496,9 +534,12 @@ def parse_feed(uri, instr):
         if entry.getElementsByTagNameNS(CC, 'stale') == []:
             continue # only interested in stale events for now
         entry_uri = get_links(uri, entry.childNodes)['alternate']
-        updated_str = entry.getElementsByTagNameNS(ATOM, "updated")[0].firstChild.data.strip()
+        updated_str = entry.getElementsByTagNameNS(
+            ATOM, "updated")[0].firstChild.data.strip()
         if updated_str:
-            updated = calendar.timegm(parser.parse(updated_str).utctimetuple())   #IGNORE:E1103
+            updated = calendar.timegm(
+                parser.parse(updated_str).utctimetuple()
+            )   #IGNORE:E1103
         else:
             updated = None
         events.append((entry_uri, updated))
