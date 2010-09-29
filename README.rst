@@ -30,7 +30,7 @@ for more information.
 This implementation of Cache Channels uses a separate Squid helper process
 to subscribe to and monitor Atom channels.
 
-.. image:: cache_channels.gif
+.. image:: cache_channels.png
 
 
 What can they do for me?
