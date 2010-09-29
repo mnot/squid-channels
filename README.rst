@@ -289,7 +289,7 @@ subsequent refresh); then, it will be served fresh for as long as
 HTTP allows it to be.
 
 For example, if your channel's ``precision`` is 30 seconds, but the
-response has a =Cache-Control: max-age``300`` header associated
+response has a ``Cache-Control: max-age=300`` header associated
 with it, the cache won't start looking in the channel for stale
 events that apply to this response until five minutes have passed;
 then, it will notice such events within 30 seconds.
